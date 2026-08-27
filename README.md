@@ -18,6 +18,52 @@ npm run dev
 
 `npm start` runs the production process. `npm test` runs the health smoke test. The API defaults to `http://localhost:5001` because macOS commonly reserves port 5000 for AirTunes.
 
+### Deploy to Vercel
+
+Vercel uses `api/index.js` as the serverless entrypoint. Configure `MONGO_URI`,
+`JWT_SECRET`, `JWT_EXPIRES_IN`, `CORS_ORIGIN`, `TAX_RATE`, and Cloudinary variables in the Vercel
+project settings, and allow Vercel's database access in your MongoDB provider.
+The included `vercel.json` rewrite exposes the health endpoint at `/health` and
+the API base at `/api/v1`.
+
+### Configure Cloudinary image storage
+
+1. Create an account at [Cloudinary](https://cloudinary.com/).
+2. Open the **Dashboard**.
+3. Copy the **Cloud name**, **API Key**, and **API Secret**.
+4. Add them to your local `.env` file:
+
+```env
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+```
+
+The API secret is private and must never be placed in Flutter code or committed
+to Git. The backend uploads images into the `techargi/products` folder in
+Cloudinary and stores the returned secure URL and public ID in the Product
+document. Product images are accepted as multipart field `image` and limited
+to 5 MB.
+
+To test the integration, first start the backend and obtain an Admin JWT and a
+category ID. Then run:
+
+```bash
+curl -X POST http://localhost:5001/api/v1/products \
+  -H "Authorization: Bearer YOUR_ADMIN_JWT" \
+  -F "name=Cloudinary Test Product" \
+  -F "category=CATEGORY_ID" \
+  -F "price=100" \
+  -F "cost=70" \
+  -F "sku=CLOUDINARY-TEST-001" \
+  -F "stockQuantity=10" \
+  -F "image=@/absolute/path/to/product.jpg"
+```
+
+The response should contain an `image` URL beginning with
+`https://res.cloudinary.com/`. Update and delete operations also remove the
+previous Cloudinary image automatically.
+
 ### Environment variables
 
 | Variable | Purpose | Example |
@@ -29,6 +75,9 @@ npm run dev
 | `JWT_EXPIRES_IN` | Token lifetime | `1d` |
 | `CORS_ORIGIN` | Allowed browser origin, or `*` | `*` |
 | `TAX_RATE` | Decimal tax rate | `0.15` |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name | stored privately |
+| `CLOUDINARY_API_KEY` | Cloudinary API key | stored privately |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret | stored privately |
 
 ## Development log
 
@@ -98,9 +147,9 @@ Login/register response includes `{ user: { id, name, email, role, phone }, toke
 | Method | Endpoint | Auth | Body/query |
 | --- | --- | --- | --- |
 | GET | `/` | Any user | `lowStock=true` and/or `category=<id>` |
-| POST | `/` | Admin | `{ name, category, price, cost, sku, stockQuantity, lowStockThreshold?, image?, isAvailable? }` |
+| POST | `/` | Admin | `multipart/form-data`: product fields plus optional image file field `image` |
 | GET | `/:id` | Any user | None |
-| PATCH | `/:id` | Admin | Any editable product fields |
+| PATCH | `/:id` | Admin | Any editable product fields; optionally `multipart/form-data` with image file field `image` |
 | DELETE | `/:id` | Admin | None |
 | PATCH | `/:id/stock` | Admin | `{ stockQuantity }` |
 | GET | `/categories` | Any user | None |
