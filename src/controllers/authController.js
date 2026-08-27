@@ -9,6 +9,8 @@ function issueToken(user) { return jwt.sign({ id: user._id }, jwtSecret, { expir
 
 exports.register = asyncHandler(async (request, response, next) => {
   const { name, email, password, role, phone } = request.body;
+  const isAdminCreatingUser = request.user?.role === 'Admin';
+  const requestedRole = isAdminCreatingUser ? role : 'Customer';
   if (role === 'Admin' && request.user?.role !== 'Admin') {
     const userCount = await User.countDocuments();
     if (userCount > 0) return next(new AppError('Only an admin can create another admin', 403));
@@ -19,7 +21,7 @@ exports.register = asyncHandler(async (request, response, next) => {
        if(dbPhone)return next(new AppError("Your phone number is already used"));
       return next(new AppError("Your email and phone number is already used"))
      }
-  const user = await User.create({ name, email, password, role: role || 'Cashier', phone });
+  const user = await User.create({ name, email, password, role: requestedRole || 'Customer', phone });
   response.status(201).json({ success: true, data: { user: serialize(user), token: issueToken(user) } });
 });
 

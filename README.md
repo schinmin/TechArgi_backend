@@ -134,7 +134,7 @@ All responses use `{ "success": true, "data": ... }`; errors use `{ "success": f
 
 | Method | Endpoint | Auth | Body |
 | --- | --- | --- | --- |
-| POST | `/register` | Public | `{ name, email, password, role?, phone? }` |
+| POST | `/register` | Public | `{ name, email, password, phone? }` (creates a `Customer`) |
 | POST | `/login` | Public | `{ email, password }` |
 | GET | `/me` | Any user | None |
 | PATCH | `/me` | Any user | `{ name?, phone? }` |
@@ -160,12 +160,17 @@ Login/register response includes `{ user: { id, name, email, role, phone }, toke
 
 | Method | Endpoint | Auth | Body |
 | --- | --- | --- | --- |
-| POST | `/` | Admin/Cashier | `{ items: [{ productId, quantity }], paymentMethod, discount? }` |
-| GET | `/` | Admin/Cashier | None |
-| GET | `/:id` | Any user | None |
+| POST | `/` | Admin/Cashier/Customer | `{ items: [{ productId, quantity }], paymentMethod, discount? }` |
+| GET | `/` | Admin/Cashier: all orders; Customer: own orders | None |
+| GET | `/:id` | Admin/Cashier: any order; Customer: own order | None |
 | PATCH | `/:id/status` | Admin/Cashier | `{ orderStatus?, paymentStatus? }` |
 
 Checkout calculates subtotal, discount, tax, and total from database prices. It checks all items and decrements inventory in one MongoDB transaction.
+
+Customer checkout should keep its cart in the Flutter app (for example, a list of
+product IDs and quantities), then submit that list to `POST /orders`. The server
+rechecks availability and stock and returns the authoritative totals. Customers
+cannot set discounts or payment/order status fields.
 
 ### Deliveries: `/api/v1/deliveries`
 

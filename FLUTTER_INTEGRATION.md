@@ -38,7 +38,7 @@ dependencies:
 
 ## 3. Authentication flow
 
-1. Call `POST /auth/register` for the initial Cashier account, or use `POST /auth/login`.
+1. Call `POST /auth/register` to create a customer account, or use `POST /auth/login`.
 2. Read `data.token` and `data.user` from the response.
 3. Store the token in secure storage.
 4. Add `Authorization: Bearer <token>` to every protected request.
@@ -46,7 +46,39 @@ dependencies:
 6. On `401`, clear the token and navigate to login.
 7. On `403`, show a permissions message; do not retry the request.
 
-The public registration endpoint cannot create an Admin. Admin users must create additional users through `POST /auth/users`.
+After a successful login or registration, route the user according to the role
+returned by the API. Do not choose the destination from the login form or from
+user input.
+
+```dart
+String homeRouteForRole(String role) {
+  switch (role) {
+    case 'Admin':
+      return '/dashboard';
+    case 'Customer':
+      return '/shop';
+    case 'Cashier':
+      return '/pos';
+    case 'Delivery Person':
+      return '/deliveries';
+    default:
+      throw StateError('Unsupported user role: $role');
+  }
+}
+
+void openHome(BuildContext context, User user) {
+  Navigator.of(context).pushNamedAndRemoveUntil(
+    homeRouteForRole(user.role),
+    (route) => false,
+  );
+}
+```
+
+Register and login should both call `openHome(context, responseUser)` after the
+token has been saved. This sends Admin users to the dashboard and Customer
+users to the shop product screen.
+
+The public registration endpoint always creates a `Customer`; any supplied role is ignored. Admin users create staff accounts through `POST /auth/users`.
 
 ### Login request
 
@@ -239,7 +271,13 @@ final response = await request.send();
 
 ### Orders and checkout
 
-Cashier/Admin submits only product IDs and quantities. Never calculate or trust prices in the Flutter app.
+For the customer UI, keep the cart locally in Flutter as product IDs and
+quantities. Load products with `GET /products`, add or remove items locally, and
+send the final cart to `POST /orders`. Customers can use `GET /orders` to show
+their order history and `GET /orders/:id` for an order detail screen.
+
+Cashier/Admin submits only product IDs and quantities. Customers submit the same
+payload. Never calculate or trust prices in the Flutter app.
 
 ```json
 {
@@ -315,6 +353,7 @@ Use `intl` to format `totalSales`, `totalProfit`, and prices as currency. Treat 
 | `Admin` | Dashboard/reports, inventory CRUD, categories, all orders, delivery assignment, user creation |
 | `Cashier` | Product browsing, cart, checkout, order list/details, delivery creation |
 | `Delivery Person` | Assigned delivery list, delivery details, delivery status updates |
+| `Customer` | Shop product list, product details, local cart, checkout, own order list/details |
 
 The backend remains the permission authority. Hide unavailable navigation items for usability, but still handle `403` responses because UI visibility is not security.
 
@@ -363,7 +402,7 @@ Keep API DTOs and repositories separate from presentation models when the app be
 - [ ] Configure base URL for Android emulator, iOS simulator, physical device, and production.
 - [ ] Add secure JWT storage and an authenticated request interceptor/client.
 - [ ] Implement login, logout, token expiry, and `/auth/me` restoration.
-- [ ] Build role-aware navigation for Admin, Cashier, and Delivery Person.
+- [ ] Build role-aware navigation: Admin -> `/dashboard`, Customer -> `/shop`, Cashier -> `/pos`, Delivery Person -> `/deliveries`.
 - [ ] Parse MongoDB IDs and populated references safely.
 - [ ] Keep the cart after failed checkout and refresh inventory after success.
 - [ ] Format money and dates using locale-aware Flutter utilities.
