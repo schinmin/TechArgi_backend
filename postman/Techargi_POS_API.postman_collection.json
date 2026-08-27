@@ -1,0 +1,245 @@
+{
+  "info": {
+    "_postman_id": "e6f2bf52-0d94-4a24-bc88-1f8b9e8f4a01",
+    "name": "Techargi POS API",
+    "description": "Postman collection for the Techargi Shop POS API. Start with Health and Register/Login. Protected requests inherit the bearer token saved by the auth requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001/api/v1" },
+    { "key": "healthUrl", "value": "http://localhost:5001" },
+    { "key": "token", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "deliveryUserId", "value": "" },
+    { "key": "categoryId", "value": "replace-with-category-id" },
+    { "key": "productId", "value": "replace-with-product-id" },
+    { "key": "orderId", "value": "replace-with-order-id" },
+    { "key": "deliveryId", "value": "replace-with-delivery-id" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{healthUrl}}/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register first Cashier",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Jane Cashier\",\n  \"email\": \"cashier@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+15550000000\"\n}" },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "if (json.data?.token) pm.collectionVariables.set('token', json.data.token);", "if (json.data?.user?.id) pm.collectionVariables.set('userId', json.data.user.id);"] } }]
+        },
+        {
+          "name": "Bootstrap first Admin (empty database only)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"System Admin\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"Admin\"\n}" },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "if (json.data?.token) pm.collectionVariables.set('token', json.data.token);", "if (json.data?.user?.id) pm.collectionVariables.set('userId', json.data.user.id);"] } }]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"cashier@example.com\",\n  \"password\": \"password123\"\n}" },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "if (json.data?.token) pm.collectionVariables.set('token', json.data.token);", "if (json.data?.user?.id) pm.collectionVariables.set('userId', json.data.user.id);"] } }]
+        },
+        {
+          "name": "Current profile",
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/auth/me" }
+        },
+        {
+          "name": "Update profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Jane Updated\",\n  \"phone\": \"+15550000001\"\n}" },
+            "url": "{{baseUrl}}/auth/me"
+          }
+        },
+        {
+          "name": "Create user (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Delivery Staff\",\n  \"email\": \"delivery@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"Delivery Person\",\n  \"phone\": \"+15550000002\"\n}" },
+            "url": "{{baseUrl}}/auth/users"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "if (json.data?.user?.id) pm.collectionVariables.set('deliveryUserId', json.data.user.id);"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Products and Categories",
+      "item": [
+        {
+          "name": "List products",
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/products" }
+        },
+        {
+          "name": "List low-stock products",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/products?lowStock=true", "host": ["{{baseUrl}}"], "path": ["products"], "query": [{ "key": "lowStock", "value": "true" }] } }
+        },
+        {
+          "name": "List categories",
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/products/categories" }
+        },
+        {
+          "name": "Create category (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Beverages\",\n  \"description\": \"Hot and cold drinks\"\n}" },
+            "url": "{{baseUrl}}/products/categories"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "if (json.data?.category?._id) pm.collectionVariables.set('categoryId', json.data.category._id);"] } }]
+        },
+        {
+          "name": "Create product (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Arabica Coffee\",\n  \"category\": \"{{categoryId}}\",\n  \"price\": 5.5,\n  \"cost\": 2.25,\n  \"sku\": \"COF-001\",\n  \"stockQuantity\": 40,\n  \"lowStockThreshold\": 5,\n  \"image\": \"https://example.com/coffee.jpg\",\n  \"isAvailable\": true\n}" },
+            "url": "{{baseUrl}}/products"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "if (json.data?.product?._id) pm.collectionVariables.set('productId', json.data.product._id);"] } }]
+        },
+        {
+          "name": "Get product",
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/products/{{productId}}" }
+        },
+        {
+          "name": "Update product (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"price\": 6\n}" },
+            "url": "{{baseUrl}}/products/{{productId}}"
+          }
+        },
+        {
+          "name": "Update stock (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"stockQuantity\": 50\n}" },
+            "url": "{{baseUrl}}/products/{{productId}}/stock"
+          }
+        },
+        {
+          "name": "Update category (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated drinks category\"\n}" },
+            "url": "{{baseUrl}}/products/categories/{{categoryId}}"
+          }
+        },
+        {
+          "name": "Delete product (Admin)",
+          "request": { "method": "DELETE", "header": [], "url": "{{baseUrl}}/products/{{productId}}" }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create order / checkout (Admin or Cashier)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"items\": [\n    { \"productId\": \"{{productId}}\", \"quantity\": 2 }\n  ],\n  \"paymentMethod\": \"Cash\",\n  \"discount\": 0\n}" },
+            "url": "{{baseUrl}}/orders"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "if (json.data?.order?._id) pm.collectionVariables.set('orderId', json.data.order._id);"] } }]
+        },
+        {
+          "name": "List orders (Admin or Cashier)",
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/orders" }
+        },
+        {
+          "name": "Get order",
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/orders/{{orderId}}" }
+        },
+        {
+          "name": "Complete and mark paid (Admin or Cashier)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"orderStatus\": \"Completed\",\n  \"paymentStatus\": \"Paid\"\n}" },
+            "url": "{{baseUrl}}/orders/{{orderId}}/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Deliveries",
+      "item": [
+        {
+          "name": "List deliveries",
+          "request": { "method": "GET", "header": [], "url": "{{baseUrl}}/deliveries" }
+        },
+        {
+          "name": "Assign delivery (Admin or Cashier)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"order\": \"{{orderId}}\",\n  \"assignedTo\": \"{{deliveryUserId}}\",\n  \"customer\": {\n    \"name\": \"Alex Customer\",\n    \"phone\": \"+15551112222\",\n    \"address\": \"12 Main Street\",\n    \"deliveryNotes\": \"Call on arrival\"\n  }\n}" },
+            "url": "{{baseUrl}}/deliveries"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const json = pm.response.json();", "if (json.data?.delivery?._id) pm.collectionVariables.set('deliveryId', json.data.delivery._id);"] } }]
+        },
+        {
+          "name": "Update delivery status (Admin or Delivery Person)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"Out for Delivery\"\n}" },
+            "url": "{{baseUrl}}/deliveries/{{deliveryId}}/status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports (Admin only)",
+      "item": [
+        {
+          "name": "Daily report",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/reports/daily?date=2026-08-26", "host": ["{{baseUrl}}"], "path": ["reports", "daily"], "query": [{ "key": "date", "value": "2026-08-26" }] } }
+        },
+        {
+          "name": "Monthly report",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/reports/monthly?year=2026&month=08", "host": ["{{baseUrl}}"], "path": ["reports", "monthly"], "query": [{ "key": "year", "value": "2026" }, { "key": "month", "value": "08" }] } }
+        },
+        {
+          "name": "Yearly report",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/reports/yearly?year=2026", "host": ["{{baseUrl}}"], "path": ["reports", "yearly"], "query": [{ "key": "year", "value": "2026" }] } }
+        }
+      ]
+    }
+  ]
+}

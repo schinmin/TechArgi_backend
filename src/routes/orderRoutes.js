@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const { body } = require('express-validator');
+const controller = require('../controllers/orderController');
+const { protect, authorize } = require('../middlewares/auth');
+const validate = require('../middlewares/validate');
+router.get('/', protect, authorize('Admin', 'Cashier'), controller.list);
+router.post('/', protect, authorize('Admin', 'Cashier'), [body('items').isArray({ min: 1 }), body('items.*.productId').isMongoId(), body('items.*.quantity').isInt({ min: 1 }), body('paymentMethod').isIn(['Cash', 'Card', 'Mobile Money', 'Other']), validate], controller.create);
+router.get('/:id', protect, controller.get);
+router.patch('/:id/status', protect, authorize('Admin', 'Cashier'), body('orderStatus').optional().isIn(['Pending', 'Completed', 'Cancelled']), validate, controller.updateStatus);
+module.exports = router;

@@ -1,0 +1,16 @@
+const router = require('express').Router();
+const { body } = require('express-validator');
+const controller = require('../controllers/productController');
+const { protect, authorize } = require('../middlewares/auth');
+const validate = require('../middlewares/validate');
+const admin = [protect, authorize('Admin')];
+router.get('/', protect, controller.list);
+router.post('/', [...admin, body('name').notEmpty(), body('category').isMongoId(), body('price').isFloat({ min: 0 }), body('cost').isFloat({ min: 0 }), body('sku').notEmpty(), validate], controller.create);
+router.get('/categories', protect, controller.listCategories);
+router.post('/categories', [...admin, body('name').notEmpty(), validate], controller.createCategory);
+router.patch('/categories/:id', ...admin, controller.updateCategory);
+router.get('/:id', protect, controller.get);
+router.patch('/:id', ...admin, controller.update);
+router.delete('/:id', ...admin, controller.remove);
+router.patch('/:id/stock', ...admin, body('stockQuantity').isInt({ min: 0 }), validate, controller.stock);
+module.exports = router;

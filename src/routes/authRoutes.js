@@ -1,0 +1,12 @@
+const router = require('express').Router();
+const { body } = require('express-validator');
+const controller = require('../controllers/authController');
+const { protect, authorize } = require('../middlewares/auth');
+const validate = require('../middlewares/validate');
+const credentials = [body('email').isEmail().withMessage('Valid email is required'), body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')];
+router.post('/register', [body('name').notEmpty(), ...credentials, validate], controller.register);
+router.post('/login', [...credentials, validate], controller.login);
+router.get('/me', protect, controller.me);
+router.patch('/me', protect, controller.updateProfile);
+router.post('/users', protect, authorize('Admin'), [body('name').notEmpty(), ...credentials, validate], controller.register);
+module.exports = router;
