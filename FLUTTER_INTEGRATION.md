@@ -14,9 +14,9 @@ Typical development URLs:
 
 | Device | Base URL |
 | --- | --- |
-| Android emulator | `http://10.0.2.2:5000/api/v1` |
-| iOS simulator | `http://127.0.0.1:5000/api/v1` |
-| Physical device | `http://<computer-lan-ip>:5000/api/v1` |
+| Android emulator | `http://10.0.2.2:5001/api/v1` |
+| iOS simulator | `http://127.0.0.1:5001/api/v1` |
+| Physical device | `http://<computer-lan-ip>:5001/api/v1` |
 | Production | `https://api.example.com/api/v1` |
 
 The phone and computer must be on the same network when using a physical device. Configure the URL in an environment-specific Flutter config; do not hard-code a production URL in widgets.
@@ -213,6 +213,28 @@ Product create body:
   "image": "https://cdn.example.com/coffee.jpg",
   "isAvailable": true
 }
+```
+
+For a product image, send the create or update request as
+`multipart/form-data` instead of JSON. Use the field name `image` for the file;
+the backend uploads it to Cloudinary and returns the stored HTTPS URL in the
+product's `image` field. Images must be 5 MB or smaller. Do not put the
+Cloudinary API secret in the Flutter app or upload directly to Cloudinary with
+server credentials.
+
+Example Flutter request shape:
+
+```dart
+final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/products'))
+  ..headers['Authorization'] = 'Bearer $token'
+  ..fields['name'] = 'Arabica Coffee'
+  ..fields['category'] = categoryId
+  ..fields['price'] = '5.50'
+  ..fields['cost'] = '2.25'
+  ..fields['sku'] = 'COF-001'
+  ..fields['stockQuantity'] = '40'
+  ..files.add(await http.MultipartFile.fromPath('image', imagePath));
+final response = await request.send();
 ```
 
 ### Orders and checkout
